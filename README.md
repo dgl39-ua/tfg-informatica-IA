@@ -8,22 +8,22 @@ Diego García López - Doble Grado en Ingeniería Informática y ADE - Curso 202
 
 ## 📂 Estructura del Proyecto
 
-. ├── images_GTZAN/            *# Carpeta que contiene los espectrogramas organizados por género*
-│ ├── blues/
-│ ├── classical/
-│ ├── country/
-│ ├── disco/
-│ ├── hiphop/
-│ ├── jazz/
-│ ├── metal/
-│ ├── pop/
-│ ├── reggae/
-│ ├── rock/
-├── modelo_gtzan_cnn.h5         *# Mejor modelo guardado (se genera después de entrenar)*
-├── grafica_CNN.png             *# Gráfica de evolución de precisión en validación (se genera)*
-├── cnn_gtzan.py                *# Script principal del proyecto*
-├── interfaz.py                 *# Aplicación en Streamlit*
-├── README.md                   *# Descripción del proyecto*
+. ├── images_GTZAN/            *# Carpeta que contiene los espectrogramas organizados por género*  
+│ ├── blues/  
+│ ├── classical/  
+│ ├── country/  
+│ ├── disco/  
+│ ├── hiphop/  
+│ ├── jazz/  
+│ ├── metal/  
+│ ├── pop/  
+│ ├── reggae/  
+│ ├── rock/  
+├── modelo_gtzan_cnn.h5         *# Mejor modelo guardado (se genera después de entrenar)*  
+├── grafica_CNN.png             *# Gráfica de evolución de precisión en validación (se genera)*  
+├── cnn_gtzan.py                *# Script principal del proyecto*  
+├── interfaz.py                 *# Aplicación en Streamlit*  
+├── README.md                   *# Descripción del proyecto*  
 
 ## 📚 Requisitos
 
@@ -37,12 +37,18 @@ Diego García López - Doble Grado en Ingeniería Informática y ADE - Curso 202
 - pandas
 
 Se pueden instalar los requisitos con:
+```bash
 pip install tensorflow numpy scikit-learn matplotlib seaborn pillow pandas
+```
 
 ## 🧪 Entrenamiento y guardado de un modelo
 Para entrenar y probar varias configuraciones de la red neuronal, además de guardar el modelo:
+```bash
 source ~/tensorflow/bin/activate
+```
+```bash
 python3 cnn_gtzan.py
+```
 
 ## 🌐 Aplicación web básica con Streamlit
 
@@ -55,5 +61,7 @@ Este proyecto incluye una aplicación desarrollada con **Streamlit** que permite
 - Visualizar la predicción y la probabilidad de acierto del género
 
 Se puede ejecutar con el siguiente comando:
+```bash
 streamlit run interfaz.py
+```
 
