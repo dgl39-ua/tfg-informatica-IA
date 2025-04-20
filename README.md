@@ -25,6 +25,24 @@ Diego García López - Doble Grado en Ingeniería Informática y ADE - Curso 202
 ├── interfaz.py                 *# Aplicación en Streamlit*
 ├── README.md                   *# Descripción del proyecto*
 
+images_GTZAN/                     # Carpeta que contiene los espectrogramas organizados por género
+│
+├── blues/
+├── classical/
+├── country/
+├── disco/
+├── hiphop/
+├── jazz/
+├── metal/
+├── pop/
+├── reggae/
+├── rock/
+│
+modelo_cnn_entrenado.keras         # Mejor modelo guardado (se genera después de entrenar)
+optimizacion_CNN.png              # Gráfica de evolución de precisión en validación (se genera)
+cnn_gtzan.py                      # Script principal del proyecto
+interfaz.py                       # Aplicación en Streamlit
+README.md                         # Descripción del proyecto
 
 ## 📚 Requisitos
 
