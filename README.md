@@ -42,9 +42,10 @@ pip install tensorflow numpy scikit-learn matplotlib seaborn pillow pandas
 
 ## 🧪 Entrenamiento y guardado de un modelo
 Para entrenar y probar varias configuraciones de la red neuronal, además de guardar el modelo:
+source ~/tensorflow/bin/activate
 python3 cnn_gtzan.py
 
-## 🌐 Aplicación Web con Streamlit
+## 🌐 Aplicación web básica con Streamlit
 
 Este proyecto incluye una aplicación desarrollada con **Streamlit** que permite clasificar géneros musicales a partir de espectrogramas de forma interactiva, a través de una interfaz web simple e intuitiva.
 

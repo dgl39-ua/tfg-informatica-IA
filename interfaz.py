@@ -5,29 +5,29 @@ from io import BytesIO
 import librosa
 import librosa.display
 import matplotlib.pyplot as plt
-from cnn_gtzan import cargar_modelo, predecir_genero, IMG_HEIGHT, IMG_WIDTH, crear_generadores
+from cnn_gtzan import cargar_modelo, predecir_genero, IMG_HEIGHT, IMG_WIDTH, ORIGIN_DIR, FILENAME_SAVED_MODEL, cargar_y_preparar_dataset, graficar_probabilidades
 
-# --- Cargar modelo y clases ---
+# Cargar el modelo y las clases
 st.title("🎵 Clasificador de Géneros Musicales")
 
 with st.spinner("Cargando modelo..."):
-    modelo = cargar_modelo("modelo_gtzan_cnn.h5")
-    train_gen, _ = crear_generadores()
-    class_indices = train_gen.class_indices
+    modelo = cargar_modelo(FILENAME_SAVED_MODEL)
+    train_gen, _ = cargar_y_preparar_dataset(ORIGIN_DIR)
+    class_indices = train_gen.class_indices # Se cargan las clases
     etiquetas = {v: k for k, v in class_indices.items()}
 st.success("Modelo cargado correctamente ✅")
 
-# --- Selector de tipo de archivo ---
+# Selector de tipo de archivo
 tipo = st.radio("¿Qué quieres subir?", ["🎧 Audio (.wav)", "🖼️ Imagen de espectrograma (.png, .jpg)"])
 
-# --- Subida de archivo ---
+# Subir el archivo
 archivo = st.file_uploader("Sube tu archivo:", type=["wav", "png", "jpg", "jpeg"])
 
 def audio_a_spectrograma(wav_bytes):
-    # Cargar audio
+    # Cargar el audio
     y, sr = librosa.load(wav_bytes, sr=None)
 
-    # Obtener mel-espectrograma
+    # Obtener el espectrograma de Mel
     S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
     S_DB = librosa.power_to_db(S, ref=np.max)
 
@@ -41,6 +41,7 @@ def audio_a_spectrograma(wav_bytes):
     plt.close(fig)
     buf.seek(0)
     imagen = Image.open(buf).convert("RGB")
+    
     return imagen
 
 if archivo is not None:
@@ -54,16 +55,15 @@ if archivo is not None:
         espectrograma_img = espectrograma_img.resize((IMG_WIDTH, IMG_HEIGHT))
         st.image(espectrograma_img, caption="Espectrograma cargado", use_container_width=True)
 
-    # Clasificar
+    # Clasificar el género
     if st.button("🎼 Clasificar género"):
-        img_array = np.array(espectrograma_img.resize((IMG_WIDTH, IMG_HEIGHT))) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
+        genero, probabilidad, probabilidades = predecir_genero(espectrograma_img, modelo, train_gen.class_indices)
 
-        predicciones = modelo.predict(img_array)
-        indice_predicho = np.argmax(predicciones)
-        probabilidad = np.max(predicciones)
-
-        st.markdown(f"🎤 **Género predicho:** `{etiquetas[indice_predicho]}`")
+        st.markdown(f"🎤 **Género predicho:** `{genero}`")
         st.markdown(f"📊 **Confianza:** `{probabilidad:.2%}`")
 
-st.text("CNN y GTZAN - Diego García López - 5º I2ADE")
+        from cnn_gtzan import graficar_probabilidades
+        graficar_probabilidades(probabilidades)
+        st.pyplot(plt)
+
+st.text("CNN y GTZAN - Diego García López - TFG INFORMÁTICA")
