@@ -144,7 +144,7 @@ def cargar_y_preparar_dataset(data_dir):
     return train_gen, val_gen
 
 # Función para construir el modelo
-def crear_y_compilar_modelo_original(num_clases):
+def crear_y_compilar_modelo_1_preliminar(num_clases):
     model = Sequential([
         Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
         Conv2D(32, (3, 3), activation='relu'),
@@ -163,7 +163,7 @@ def crear_y_compilar_modelo_original(num_clases):
 
     return model
 
-def crear_y_compilar_modelo2(num_clases):
+def crear_y_compilar_modelo_otra(num_clases):
     model = Sequential([
         Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
 
