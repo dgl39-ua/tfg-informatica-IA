@@ -10,6 +10,8 @@ from random import sample
 import time
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
+import librosa
+import librosa.display
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential, load_model
@@ -17,14 +19,67 @@ from tensorflow.keras import Input
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
 from PIL import Image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
+from tensorflow.keras.metrics import Precision, Recall
 import pandas as pd
+from io import BytesIO
 
 IMG_HEIGHT = 128
 IMG_WIDTH = 128
 BATCH_SIZE = 32
-EPOCHS = 20
-ORIGIN_DIR = 'images_GTZAN/'
+EPOCHS = 60
+IMAGES_DIR = 'images_GTZAN/'
+AUDIOS_DIR = 'audios_GTZAN/'
 FILENAME_SAVED_MODEL = "modelo_gtzan_cnn.h5"
+
+# Función que genera los espectrogramas de Mel a partir de los audios del dataset
+def generar_espectrogramas(origen_audio_dir=AUDIOS_DIR, destino_img_dir=IMAGES_DIR):
+    hl = 512
+    hi = 128
+    target_sr = 22050
+    duration = 30
+
+    generos = os.listdir(origen_audio_dir)
+    for género in generos:
+        ruta_audio = os.path.join(origen_audio_dir, genero)
+        ruta_destino = os.path.join(destino_img_dir, genero)
+
+        if not os.path.isdir(ruta_audio):
+            continue
+
+        os.makedirs(ruta_destino, exist_ok=True)
+
+        for archivo in os.listdir(ruta_audio):
+            if archivo.lower().endswith(".wav"):
+                audio_path = os.path.join(ruta_audio, archivo)
+                img_name = os.path.splitext(archivo)[0] + ".png"
+                img_path = os.path.join(ruta_destino, img_name)
+
+                if os.path.exists(img_path):
+                    continue
+
+                try:
+                    y, sr = librosa.load(audio_path, sr=target_sr, duration=duration)
+                    S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=hi, hop_length=hl)
+                    S_dB = librosa.power_to_db(S, ref=np.max)
+
+                    plt.rcParams["figure.figsize"] = [12.92, 5.12]
+                    plt.rcParams["figure.autolayout"] = True
+                    fig, ax = plt.subplots()
+                    librosa.display.specshow(S_dB, sr=sr, hop_length=hl, y_axis='mel', x_axis=None, ax=ax)
+                    plt.axis('off')
+
+                    buf = BytesIO()
+                    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+                    plt.close(fig)
+                    buf.seek(0)
+                    imagen = Image.open(buf).convert("RGB")
+                    imagen = imagen.resize((IMG_WIDTH, IMG_HEIGHT))
+                    imagen.save(img_path)
+
+                    print(f"Generado: {img_path}")
+
+                except Exception as e:
+                    print(f"Error procesando {audio_path}: {e}")
 
 # Función que busca y evalúa la precisión del modelo guardado
 def buscar_modelo_guardado(nombre_modelo):
@@ -89,7 +144,7 @@ def cargar_y_preparar_dataset(data_dir):
     return train_gen, val_gen
 
 # Función para construir el modelo
-def crear_y_compilar_modelo(num_clases):
+def crear_y_compilar_modelo_original(num_clases):
     model = Sequential([
         Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
         Conv2D(32, (3, 3), activation='relu'),
@@ -105,6 +160,66 @@ def crear_y_compilar_modelo(num_clases):
     ])
     
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+    return model
+
+def crear_y_compilar_modelo2(num_clases):
+    model = Sequential([
+        Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
+
+        # Bloque 1
+        Conv2D(16, (3, 3), activation='relu', padding='same'),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+        Dropout(0.2),
+
+        # Bloque 2
+        Conv2D(32, (3, 3), activation='relu', padding='same'),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+        Dropout(0.3),
+
+        # Bloque 3
+        Conv2D(64, (3, 3), activation='relu', padding='same'),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+        Dropout(0.4),
+
+        # Cierre
+        tf.keras.layers.GlobalAveragePooling2D(),
+        Dense(64, activation='relu'),
+        Dropout(0.5),
+        Dense(num_clases, activation='softmax')
+    ])
+
+    model.compile(
+        optimizer=Adam(learning_rate=0.0005),
+        loss='categorical_crossentropy',
+        metrics=['accuracy']
+    )
+
+    return model
+
+def crear_y_compilar_modelo(num_clases):
+    model = Sequential([
+        Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
+        Conv2D(32, (3, 3), activation='relu'),
+        MaxPooling2D((2, 2)),
+        Conv2D(64, (3, 3), activation='relu'),
+        MaxPooling2D((2, 2)),
+        Conv2D(128, (3, 3), activation='relu'),
+        MaxPooling2D((2, 2)),
+        Flatten(),  # Aplanamiento de las salidas para conectarlas a la capa Dense
+        Dense(128, activation='relu'),
+        Dropout(0.3),
+        Dense(num_clases, activation='softmax') # Capa de salida
+    ])
+    
+    model.compile(
+        optimizer=Adam(learning_rate=0.0005),
+        loss='categorical_crossentropy',
+        metrics=['accuracy', Precision(name='precision'), Recall(name='recall')]
+    )
 
     return model
 
@@ -232,8 +347,11 @@ def predecir_genero(img_path_or_array, model, class_indices):
     return labels[predicted_class], probabilidad, probabilidades
 
 if __name__ == "__main__":
+    # Generar espectogramas a partir de los audios
+    #generar_espectrogramas(origen_audio_dir=AUDIOS_DIR, destino_img_dir=IMAGES_DIR)
+
     # Cargar el dataset GTZAN
-    train_gen, val_gen = cargar_y_preparar_dataset(data_dir=ORIGIN_DIR)
+    train_gen, val_gen = cargar_y_preparar_dataset(data_dir=IMAGES_DIR)
 
     # Si ya existe un modelo guardado, cargarlo y evaluar su precisión
     modelo_guardado, precision_guardada = buscar_modelo_guardado(nombre_modelo=FILENAME_SAVED_MODEL)
@@ -254,7 +372,7 @@ if __name__ == "__main__":
     test_loss, test_acc = evaluar_resultados(model, val_gen)
     print(f"Tiempo de entrenamiento: {training_time:.4f} segundos")
     print()
-
+    
     # Comparar las precisiones y guardar mejor modelo
     if test_acc > precision_guardada:
         model.save(FILENAME_SAVED_MODEL)
@@ -268,7 +386,7 @@ if __name__ == "__main__":
         print()
 
     # Ejemplo de predicción
-    ejemplo = 'images_GTZAN/pop/pop00047.png'
+    ejemplo = 'images_GTZAN/pop/pop.00047.png'
     genero, probabilidad, probabilidades = predecir_genero(ejemplo, modelo_guardado, train_gen.class_indices)
     print("Género predicho:", genero)
     print(f"Confianza: {probabilidad:.2%}")

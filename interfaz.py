@@ -2,58 +2,88 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 from io import BytesIO
+import tempfile
 import librosa
 import librosa.display
 import matplotlib.pyplot as plt
-from cnn_gtzan import cargar_modelo, predecir_genero, IMG_HEIGHT, IMG_WIDTH, ORIGIN_DIR, FILENAME_SAVED_MODEL, cargar_y_preparar_dataset, graficar_probabilidades
+from cnn_gtzan import cargar_modelo, predecir_genero, IMG_HEIGHT, IMG_WIDTH, IMAGES_DIR, FILENAME_SAVED_MODEL, cargar_y_preparar_dataset, graficar_probabilidades
 
-# Cargar el modelo y las clases
-st.title("🎵 Clasificador de Géneros Musicales")
+def audio_a_espectrograma(wav_file):
+    # Guardar temporalmente el archivo subido
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmpfile:
+        tmpfile.write(wav_file.read())
+        tmpfile_path = tmpfile.name
 
-with st.spinner("Cargando modelo..."):
-    modelo = cargar_modelo(FILENAME_SAVED_MODEL)
-    train_gen, _ = cargar_y_preparar_dataset(ORIGIN_DIR)
-    class_indices = train_gen.class_indices # Se cargan las clases
-    etiquetas = {v: k for k, v in class_indices.items()}
-st.success("Modelo cargado correctamente ✅")
+    # Parámetros
+    hl = 512  # hop_length, number of samples per time-step in spectrogram
+    hi = 128  # número de bandas mel, Height of image
+    duration = 30  # segundos
+    target_sr = 22050  # frecuencia de muestreo estándar
 
-# Selector de tipo de archivo
-tipo = st.radio("¿Qué quieres subir?", ["🎧 Audio (.wav)", "🖼️ Imagen de espectrograma (.png, .jpg)"])
-
-# Subir el archivo
-archivo = st.file_uploader("Sube tu archivo:", type=["wav", "png", "jpg", "jpeg"])
-
-def audio_a_spectrograma(wav_bytes):
     # Cargar el audio
-    y, sr = librosa.load(wav_bytes, sr=None)
+    y, sr = librosa.load(tmpfile_path, sr=target_sr, duration=duration)
 
-    # Obtener el espectrograma de Mel
-    S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
-    S_DB = librosa.power_to_db(S, ref=np.max)
+    # Generar el espectrograma de Mel
+    S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=hi, hop_length=hl)
+    S_dB = librosa.power_to_db(S, ref=np.max)
 
-    # Convertir en imagen RGB
-    fig, ax = plt.subplots(figsize=(2, 2), dpi=64)
-    librosa.display.specshow(S_DB, sr=sr, x_axis=None, y_axis=None, cmap='viridis')
-    plt.axis('off')
+    # Ajustar tamaño de la figura
+    plt.rcParams["figure.figsize"] = [12.92, 5.12]  # para 1292 time bins (30s @ 22050Hz, hl=512)
+    plt.rcParams["figure.autolayout"] = True
 
+    fig, ax = plt.subplots()
+    img = librosa.display.specshow(S_dB, x_axis=None, y_axis='mel', sr=sr, hop_length=hl, ax=ax)
+
+    plt.axis('off')  # Ocultar los ejes
+
+    # Convertir figura en imagen
     buf = BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
     plt.close(fig)
     buf.seek(0)
     imagen = Image.open(buf).convert("RGB")
-    
+
+    # Redimensionar para la CNN
+    imagen = imagen.resize((IMG_WIDTH, IMG_HEIGHT))
+
     return imagen
 
+# -------------------------------
+# Interfaz
+# -------------------------------
+
+# Cargar el modelo y las clases
+st.title("🎵 Clasificador de Géneros Musicales")
+st.markdown("---")
+
+with st.spinner("Cargando modelo..."):
+    modelo = cargar_modelo(FILENAME_SAVED_MODEL)
+    train_gen, _ = cargar_y_preparar_dataset(IMAGES_DIR)
+    class_indices = train_gen.class_indices # Se cargan las clases
+    etiquetas = {v: k for k, v in class_indices.items()}
+st.success("Modelo cargado correctamente ✅")
+
+# Selector de tipo de archivo
+tipo = st.radio("Selecciona el tipo de archivo a analizar:", ["🎧 Audio (.wav)", "🖼️ Imagen de espectrograma (.png, .jpg)"])
+
+# Subir el archivo
+archivo = st.file_uploader("Sube tu archivo:", type=["wav", "png", "jpg", "jpeg"])
+
+# Procesar el archivo
 if archivo is not None:
     if tipo == "🎧 Audio (.wav)":
         st.audio(archivo, format='audio/wav')
         with st.spinner("Generando espectrograma..."):
-            espectrograma_img = audio_a_spectrograma(archivo)
-        st.image(espectrograma_img, caption="Espectrograma generado", use_container_width=True)
+            espectrograma_img = audio_a_espectrograma(archivo)
+        cols = st.columns([1, 2, 1])
+        with cols[1]:
+            st.image(espectrograma_img, caption="Espectrograma generado", width=400)
     else:
         espectrograma_img = Image.open(archivo).convert("RGB")
         espectrograma_img = espectrograma_img.resize((IMG_WIDTH, IMG_HEIGHT))
-        st.image(espectrograma_img, caption="Espectrograma cargado", use_container_width=True)
+        cols = st.columns([1, 2, 1])
+        with cols[1]:
+            st.image(espectrograma_img, caption="Espectrograma cargado", width=400)
 
     # Clasificar el género
     if st.button("🎼 Clasificar género"):
@@ -62,8 +92,8 @@ if archivo is not None:
         st.markdown(f"🎤 **Género predicho:** `{genero}`")
         st.markdown(f"📊 **Confianza:** `{probabilidad:.2%}`")
 
-        from cnn_gtzan import graficar_probabilidades
         graficar_probabilidades(probabilidades)
         st.pyplot(plt)
 
-st.text("CNN y GTZAN - Diego García López - TFG INFORMÁTICA")
+st.markdown("---")
+st.caption("CNN y GTZAN - Diego García López - TFG INFORMÁTICA")
