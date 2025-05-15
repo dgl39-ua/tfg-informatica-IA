@@ -1,0 +1,14 @@
+El mejor modelo encontrado se ha almacenado como mejor_modelo_ajustado.h5 y corresponde a la siguiente configuración de parámetros:
+
+| Parámetro                                | Valor   |
+| ---------------------------------------- | ------- |
+| Tamaño de imagen                         | 128x128 |
+| Número de filtros iniciales              | 16      |
+| Tasa de Dropout                          | 0.2     |
+| Tamaño de batch                          | 16      |
+| Learning rate                            | 0.001   |
+| Optimizador                              | Adam    |
+| Precisión en validación (`val_accuracy`) | 68.34%  |
+| Precision                                | 73.45%  |
+| Recall                                   | 65.33%  |
+
