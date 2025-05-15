@@ -11,7 +11,7 @@ from tensorflow.keras import Input
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
 from tensorflow.keras.optimizers import Adam, RMSprop
-from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.metrics import Precision, Recall
 from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
 from sklearn.metrics import confusion_matrix, classification_report, f1_score
@@ -21,7 +21,6 @@ from random import sample
 from PIL import Image
 from io import BytesIO
 from itertools import product
-from tensorflow.keras.callbacks import ModelCheckpoint
 
 # Parámetros globales
 IMG_HEIGHT = 128
