@@ -229,6 +229,7 @@ def ajustar_arquitectura_cross_validation(param_grid, output_file="resultados_cr
 
         fold_metrics = np.array(fold_metrics)
         avg_results = np.mean(fold_metrics, axis=0)  # [loss, acc, precision, recall, f1]
+        std_results = np.std(fold_metrics, axis=0)
 
         results.append({
             "img_size": params["img_size"],
@@ -237,10 +238,14 @@ def ajustar_arquitectura_cross_validation(param_grid, output_file="resultados_cr
             "batch_size": params["batch_size"],
             "lr": params["lr"],
             "optimizer": params["optimizer"],
-            "accuracy": avg_results[1],
-            "precision": avg_results[2],
-            "recall": avg_results[3],
-            "f1_score": avg_results[4]
+            "accuracy_mean": avg_results[1],
+            "accuracy_std": std_results[1],
+            "precision_mean": avg_results[2],
+            "precision_std": std_results[2],
+            "recall_mean": avg_results[3],
+            "recall_std": std_results[3],
+            "f1_score_mean": avg_results[4],
+            "f1_score_std": std_results[4]
         })
 
         if avg_results[4] > best_f1:
