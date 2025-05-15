@@ -12,7 +12,7 @@ from tensorflow.keras.metrics import Precision, Recall
 from sklearn.metrics import confusion_matrix, classification_report
 
 # Configuración
-MODEL_FILE = "modelo_gtzan_cnn.h5"   # "mejor_modelo_ajustado.h5" // "modelo_gtzan_cnn.h5" // "modelo_gtzan_cnn_arq2.h5"
+MODEL_FILE = "mejor_modelo_ajustado.h5"   # "mejor_modelo_ajustado.h5" // "modelo_gtzan_cnn.h5" // "modelo_gtzan_cnn_arq2.h5"
 DATASET_DIR = "images_GTZAN/"
 IMG_HEIGHT = 128
 IMG_WIDTH = 128

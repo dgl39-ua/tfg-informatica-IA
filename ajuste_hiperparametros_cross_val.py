@@ -303,30 +303,9 @@ def generar_param_grid():
 
     return param_grid
 
-def generar_param_grid_corto():
-    param_grid = []
-
-    for (dropout, batch_size, lr, optimizer) in product(
-        [0.2],
-        [16],
-        [0.0005],
-        ["adam"]
-    ):
-        param_grid.append({
-            "img_size": 128,
-            "filters": 16,
-            "dropout": dropout,
-            "batch_size": batch_size,
-            "lr": lr,
-            "optimizer": optimizer
-        })
-
-    return param_grid
-
 if __name__ == "__main__":
     # Generar las combinaciones
-    #param_grid = generar_param_grid()
-    param_grid = generar_param_grid_corto()
+    param_grid = generar_param_grid()
 
     # Ajustar hiperparámetros de la arquitectura
     ajustar_arquitectura_cross_validation(param_grid)

@@ -398,9 +398,9 @@ if __name__ == "__main__":
     best_f1 = 0
 
     # Si ya existe un modelo guardado, cargarlo y evaluarlo
-    best_f1 = buscar_modelo_guardado(best_f1)
-    print(best_f1)
-    print()
+    #best_f1 = buscar_modelo_guardado(best_f1)
+    #print(best_f1)
+    #print()
 
     best_model = None
     best_history = None
