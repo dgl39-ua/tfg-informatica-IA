@@ -269,30 +269,16 @@ def ajustar_arquitectura_cross_validation(param_grid, output_file="resultados_cr
 def generar_param_grid():
     param_grid = []
 
-    for (dropout, batch_size, lr, optimizer) in product(
-        [0.2, 0.3],
-        [16, 32],
-        [0.001, 0.0005],
-        ["adam", "rmsprop"]
+    for (img_size, filters, dropout, batch_size, lr, optimizer) in product(
+        [128, 256],                # Ambos tamaños de imagen
+        [16, 32],                  # Ambos valores de filtros
+        [0.2, 0.3],                # Dropout
+        [16, 32],                  # Batch size
+        [0.001, 0.0005],           # Learning rate
+        ["adam", "rmsprop"]        # Optimizador
     ):
         param_grid.append({
-            "img_size": 128,
-            "filters": 16,
-            "dropout": dropout,
-            "batch_size": batch_size,
-            "lr": lr,
-            "optimizer": optimizer
-        })
-
-    for (filters, dropout, batch_size, lr, optimizer) in product(
-        [16, 32],
-        [0.2, 0.3],
-        [16, 32],
-        [0.001, 0.0005],
-        ["adam", "rmsprop"]
-    ):
-        param_grid.append({
-            "img_size": 256,
+            "img_size": img_size,
             "filters": filters,
             "dropout": dropout,
             "batch_size": batch_size,
