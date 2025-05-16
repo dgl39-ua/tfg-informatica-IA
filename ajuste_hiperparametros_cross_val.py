@@ -21,23 +21,75 @@ from random import sample
 from PIL import Image
 from io import BytesIO
 from itertools import product
+import librosa
+import librosa.display
 
 # Parámetros globales
 IMG_HEIGHT = 128
 IMG_WIDTH = 128
 BATCH_SIZE = 32
 EPOCHS = 50
-ORIGIN_DIR = 'images_GTZAN/'
 AUDIO_DIR = 'audios_GTZAN/'
 
-def crear_y_compilar_modelo(num_clases, filters=32, dropout=0.3, lr=0.0005, optimizer_name="adam"):
+# Función que genera los espectrogramas de Mel a partir de los audios del dataset
+# permitiendo elegir el tamaño de las imágenes (ej. 128x128 o 256x256)
+def generar_espectrogramas(origen_audio_dir, destino_img_dir, img_size=(128, 128)):
+    hl = 512
+    hi = 128
+    target_sr = 22050
+    duration = 30
+
+    generos = os.listdir(origen_audio_dir)
+    for genero in generos:
+        ruta_audio = os.path.join(origen_audio_dir, genero)
+        ruta_destino = os.path.join(destino_img_dir, genero)
+
+        if not os.path.isdir(ruta_audio):
+            continue
+
+        os.makedirs(ruta_destino, exist_ok=True)
+
+        for archivo in os.listdir(ruta_audio):
+            if archivo.lower().endswith(".wav"):
+                audio_path = os.path.join(ruta_audio, archivo)
+                img_name = os.path.splitext(archivo)[0] + ".png"
+                img_path = os.path.join(ruta_destino, img_name)
+
+                if os.path.exists(img_path):
+                    continue
+
+                try:
+                    y, sr = librosa.load(audio_path, sr=target_sr, duration=duration)
+                    S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=hi, hop_length=hl)
+                    S_dB = librosa.power_to_db(S, ref=np.max)
+
+                    plt.rcParams["figure.figsize"] = [12.92, 5.12]
+                    plt.rcParams["figure.autolayout"] = True
+                    fig, ax = plt.subplots()
+                    librosa.display.specshow(S_dB, sr=sr, hop_length=hl, y_axis='mel', x_axis=None, ax=ax)
+                    plt.axis('off')
+
+                    buf = BytesIO()
+                    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+                    plt.close(fig)
+                    buf.seek(0)
+                    imagen = Image.open(buf).convert("RGB")
+                    imagen = imagen.resize(img_size)
+                    imagen.save(img_path)
+
+                    print(f"Generado: {img_path}")
+
+                except Exception as e:
+                    print(f"Error procesando {audio_path}: {e}")
+
+def crear_y_compilar_modelo(num_clases, image_size=128, filters=32, dropout=0.3, lr=0.0005, optimizer_name="adam"):
     if optimizer_name == "adam":
         opt = Adam(learning_rate=lr)
     else:
         opt = RMSprop(learning_rate=lr)
 
     model = Sequential([
-        Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
+        Input(shape=(image_size, image_size, 3)),
 
         Conv2D(filters, (3, 3), activation='relu'),
         BatchNormalization(),
@@ -128,19 +180,6 @@ def mostrar_matriz_confusion(best_model, best_val_gen):
 
 # Ajusta hiperparámetros usando Stratified K-Fold Cross Validation
 def ajustar_arquitectura_cross_validation(param_grid, output_file="resultados_crossval_grid_search.csv", n_splits=5):
-    filepaths = []
-    labels = []
-
-    for class_dir in os.listdir(ORIGIN_DIR):
-        class_path = os.path.join(ORIGIN_DIR, class_dir)
-        if os.path.isdir(class_path):
-            for fname in os.listdir(class_path):
-                if fname.lower().endswith(('.png', '.jpg', '.jpeg')):
-                    filepaths.append(os.path.join(class_path, fname))
-                    labels.append(class_dir)
-
-    df = pd.DataFrame({"filename": filepaths, "class": labels})
-
     best_f1 = 0
     best_model = None
     best_history = None
@@ -149,11 +188,27 @@ def ajustar_arquitectura_cross_validation(param_grid, output_file="resultados_cr
     results = []
 
     for i, params in enumerate(param_grid):
-        print(f"\nEjecutando experimento {i+1}/{len(param_grid)}: {params}")
+        image_size = params["img_size"]
+        batch_size = params["batch_size"]
+        origin_dir = f"images_GTZAN_{image_size}"
 
-        global IMG_HEIGHT, IMG_WIDTH, BATCH_SIZE
-        IMG_HEIGHT = IMG_WIDTH = params["img_size"]
-        BATCH_SIZE = params["batch_size"]
+        print(f"\nEjecutando experimento {i+1}/{len(param_grid)}: {params}")
+        print()
+        print(f"Obteniendo imágenes del directorio {origin_dir}")
+
+        # Cargar imágenes para el tamaño a probar
+        filepaths = []
+        labels = []
+
+        for class_dir in os.listdir(origin_dir):
+            class_path = os.path.join(origin_dir, class_dir)
+            if os.path.isdir(class_path):
+                for fname in os.listdir(class_path):
+                    if fname.lower().endswith(('.png', '.jpg', '.jpeg')):
+                        filepaths.append(os.path.join(class_path, fname))
+                        labels.append(class_dir)
+
+        df = pd.DataFrame({"filename": filepaths, "class": labels})
 
         skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
         fold_metrics = []
@@ -172,8 +227,8 @@ def ajustar_arquitectura_cross_validation(param_grid, output_file="resultados_cr
                 train_df,
                 x_col="filename",
                 y_col="class",
-                target_size=(IMG_HEIGHT, IMG_WIDTH),
-                batch_size=BATCH_SIZE,
+                target_size=(image_size, image_size),
+                batch_size=batch_size,
                 class_mode="categorical"
             )
 
@@ -181,8 +236,8 @@ def ajustar_arquitectura_cross_validation(param_grid, output_file="resultados_cr
                 val_df,
                 x_col="filename",
                 y_col="class",
-                target_size=(IMG_HEIGHT, IMG_WIDTH),
-                batch_size=BATCH_SIZE,
+                target_size=(image_size, image_size),
+                batch_size=batch_size,
                 class_mode="categorical",
                 shuffle=False
             )
@@ -190,6 +245,7 @@ def ajustar_arquitectura_cross_validation(param_grid, output_file="resultados_cr
             # Crear el modelo y compilar
             model = crear_y_compilar_modelo(
                 num_clases=len(train_gen.class_indices),
+                image_size=image_size,
                 filters=params["filters"],
                 dropout=params["dropout"],
                 lr=params["lr"],
@@ -294,6 +350,12 @@ def generar_param_grid():
     return param_grid
 
 if __name__ == "__main__":
+    # Generar espectrogramas para 128x128
+    generar_espectrogramas(AUDIO_DIR, "images_GTZAN_128", img_size=(128, 128))
+
+    # Generar espectrogramas para 256x256
+    generar_espectrogramas(AUDIO_DIR, "images_GTZAN_256", img_size=(256, 256))
+    
     # Generar las combinaciones
     param_grid = generar_param_grid()
 
