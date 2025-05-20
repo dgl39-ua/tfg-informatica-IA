@@ -2,7 +2,19 @@ import logging, os
 logging.disable(logging.WARNING)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
+
+os.environ.pop('TF_GPU_ALLOCATOR', None)
+
+import banner
+
+banner.banner(' GPU disponibles para TF ')
+
 import tensorflow as tf
+
+print(tf.config.list_physical_devices('GPU'))
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt

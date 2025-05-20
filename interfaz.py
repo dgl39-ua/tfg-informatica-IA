@@ -6,7 +6,7 @@ import tempfile
 import librosa
 import librosa.display
 import matplotlib.pyplot as plt
-from cnn_gtzan import cargar_modelo, predecir_genero, IMG_HEIGHT, IMG_WIDTH, IMAGES_DIR, FILENAME_SAVED_MODEL, cargar_y_preparar_dataset, graficar_probabilidades
+from entrenar_modelo_final import IMG_SIZE, IMAGES_DIR, FILENAME_SAVED_MODEL, cargar_modelo, cargar_y_preparar_dataset, predecir_genero, graficar_probabilidades
 
 def audio_a_espectrograma(wav_file):
     # Guardar temporalmente el archivo subido
@@ -44,7 +44,7 @@ def audio_a_espectrograma(wav_file):
     imagen = Image.open(buf).convert("RGB")
 
     # Redimensionar para la CNN
-    imagen = imagen.resize((IMG_WIDTH, IMG_HEIGHT))
+    imagen = imagen.resize((IMG_SIZE, IMG_SIZE))
 
     return imagen
 
@@ -58,8 +58,8 @@ st.markdown("---")
 
 with st.spinner("Cargando modelo..."):
     modelo = cargar_modelo(FILENAME_SAVED_MODEL)
-    train_gen, _ = cargar_y_preparar_dataset(IMAGES_DIR)
-    class_indices = train_gen.class_indices # Se cargan las clases
+    full_gen, _ = cargar_y_preparar_dataset(IMAGES_DIR)
+    class_indices = full_gen.class_indices # Se cargan las clases
     etiquetas = {v: k for k, v in class_indices.items()}
 st.success("Modelo cargado correctamente ✅")
 
@@ -80,14 +80,14 @@ if archivo is not None:
             st.image(espectrograma_img, caption="Espectrograma generado", width=400)
     else:
         espectrograma_img = Image.open(archivo).convert("RGB")
-        espectrograma_img = espectrograma_img.resize((IMG_WIDTH, IMG_HEIGHT))
+        espectrograma_img = espectrograma_img.resize((IMG_SIZE, IMG_SIZE))
         cols = st.columns([1, 2, 1])
         with cols[1]:
             st.image(espectrograma_img, caption="Espectrograma cargado", width=400)
 
     # Clasificar el género
     if st.button("🎼 Clasificar género"):
-        genero, probabilidad, probabilidades = predecir_genero(espectrograma_img, modelo, train_gen.class_indices)
+        genero, probabilidad, probabilidades = predecir_genero(espectrograma_img, modelo, full_gen.class_indices)
 
         st.markdown(f"🎤 **Género predicho:** `{genero}`")
         st.markdown(f"📊 **Confianza:** `{probabilidad:.2%}`")

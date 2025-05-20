@@ -25,9 +25,9 @@ from sklearn.metrics import f1_score
 import pandas as pd
 from io import BytesIO
 
-IMG_HEIGHT = 128
-IMG_WIDTH = 128
-BATCH_SIZE = 32
+IMG_HEIGHT = 256
+IMG_WIDTH = 256
+BATCH_SIZE = 16
 EPOCHS = 50
 IMAGES_DIR = 'images_GTZAN/'
 AUDIOS_DIR = 'audios_GTZAN/'
