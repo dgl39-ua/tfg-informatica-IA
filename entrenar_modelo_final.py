@@ -55,7 +55,7 @@ def cargar_y_preparar_dataset():
         target_size=(IMG_SIZE, IMG_SIZE),
         batch_size=BATCH_SIZE,
         class_mode="categorical",
-        shuffle=True
+        shuffle=False
     )
 
     return full_gen
@@ -93,26 +93,27 @@ def crear_y_compilar_modelo(num_clases, filters=16):
 # Función para mostrar la evolución de la pérdida y la precisión durante el entrenamiento
 def graficar_resultados(history):
     acc = history.history['accuracy']
-    val_acc = history.history['val_accuracy']
     loss = history.history['loss']
-    val_loss = history.history['val_loss']
     epochs_range = range(len(acc))
 
     plt.figure(figsize=(12, 5))
 
     plt.subplot(1, 2, 1)
-    plt.plot(epochs_range, acc, label='Entrenamiento')
-    plt.plot(epochs_range, val_acc, label='Validación')
-    plt.title('Accuracy')
+    plt.plot(epochs_range, acc, label='Accuracy de entrenamiento')
+    plt.title('Evolución de la Accuracy')
+    plt.xlabel('Épocas')
+    plt.ylabel('Accuracy')
     plt.legend()
 
     plt.subplot(1, 2, 2)
-    plt.plot(epochs_range, loss, label='Entrenamiento')
-    plt.plot(epochs_range, val_loss, label='Validación')
-    plt.title('Pérdida')
+    plt.plot(epochs_range, loss, label='Pérdida de entrenamiento', color='orange')
+    plt.title('Evolución de la Pérdida')
+    plt.xlabel('Épocas')
+    plt.ylabel('Loss')
     plt.legend()
 
-    plt.savefig('grafica_CNN_cross_val_modelo_final.png')
+    plt.tight_layout()
+    plt.savefig('grafica_entrenamiento_modelo_final.png')
     plt.show()
 
 # Función para mostrar la matriz de confusión
@@ -229,9 +230,6 @@ def generar_espectrogramas_IA(origen_audio_dir, destino_img_dir):
                     print(f"Error procesando {audio_path}: {e}")
 
 def evaluar_modelo_en_ia(model, test_dir, matrix_filemame, report_filename):
-    # Generar los espectrogramas a partir de los audios de IA
-    generar_espectrogramas_IA(origen_audio_dir=AUDIOS_IA_DIR, destino_img_dir=IMAGES_IA_DIR)
-
     os.makedirs("resultados_IA", exist_ok=True)
 
     # Preparar generador para los espectrogramas IA
@@ -306,6 +304,47 @@ def evaluar_modelo_en_ia(model, test_dir, matrix_filemame, report_filename):
     # Gráfica de probabilidades
     graficar_probabilidades(probabilidades)
 
+
+def predecir_y_guardar_todas_las_predicciones(directorio, modelo, class_indices, output_csv="predicciones.csv"):
+    resultados = []
+
+    # Invertir class_indices para recuperar nombre de clase desde índice
+    etiquetas = {v: k for k, v in class_indices.items()}
+
+    for clase in sorted(os.listdir(directorio)):
+        clase_path = os.path.join(directorio, clase)
+        if not os.path.isdir(clase_path):
+            continue
+
+        for fname in sorted(os.listdir(clase_path)):
+            if not fname.lower().endswith(('.png', '.jpg', '.jpeg')):
+                continue
+
+            ruta_img = os.path.join(clase_path, fname)
+
+            # Cargar y preprocesar la imagen
+            img = load_img(ruta_img, target_size=(IMG_SIZE, IMG_SIZE))
+            img_array = img_to_array(img) / 255.0
+            img_array = np.expand_dims(img_array, axis=0)
+
+            # Realizar la predicción
+            pred = modelo.predict(img_array, verbose=0)[0]
+            idx_predicho = np.argmax(pred)
+            confianza = float(np.max(pred))
+            genero_predicho = etiquetas.get(idx_predicho, f"Clase_{idx_predicho}")
+
+            resultados.append({
+                "archivo": fname,
+                "clase_real": clase,
+                "clase_predicha": genero_predicho,
+                "probabilidad": round(confianza, 4)
+            })
+
+    # Guardar resultados en CSV
+    df_resultados = pd.DataFrame(resultados)
+    df_resultados.to_csv(output_csv, index=False)
+    print(f"✅ Predicciones guardadas en: {output_csv}")
+
 if __name__ == "__main__":
     print("\n========================================")
     print("ENTRENAMIENTO FINAL CON TODO EL DATASET")
@@ -370,5 +409,30 @@ if __name__ == "__main__":
     # Mostrar la matriz de confusión
     mostrar_matriz_confusion(y_true, y_pred, full_gen.class_indices, matrix_filename="matriz_confusion_modelo_final", report_filename="classification_report_modelo_final")
 
+    # Generar los espectrogramas a partir de los audios de IA
+    #generar_espectrogramas_IA(origen_audio_dir=AUDIOS_IA_DIR, destino_img_dir=IMAGES_IA_DIR)
+
     # Evaluación con los espectrogramas generados a partir de los audios de IA
-    evaluar_modelo_en_ia(model=cargar_modelo(FILENAME_SAVED_MODEL), test_dir=IMAGES_IA_DIR, matrix_filename="matriz_confusion_IA", report_filename="classification_report_IA")
+    """
+    test_dir = IMAGES_IA_DIR
+    matrix_filename="matriz_confusion_IA"
+    report_filename="classification_report_IA"
+    model = cargar_modelo(filename=FILENAME_SAVED_MODEL)
+    evaluar_modelo_en_ia(model, test_dir, matrix_filename, report_filename)
+    """
+    """
+    # Ejemplo de predicción
+    modelo_guardado = cargar_modelo(FILENAME_SAVED_MODEL)
+    ejemplo = 'images_GTZAN/pop/pop.00047.png'
+    genero, probabilidad, probabilidades = predecir_genero(ejemplo, modelo_guardado, full_gen.class_indices)
+    print("Género predicho:", genero)
+    print(f"Confianza: {probabilidad:.2%}")
+
+    # Mostrar una gráfica de barras con la probabilidad de cada uno de los 10 géneros
+    graficar_probabilidades(probabilidades)
+    """
+    
+    directorio_test = IMAGES_IA_DIR
+    modelo_guardado = cargar_modelo(FILENAME_SAVED_MODEL)
+    full_gen = cargar_y_preparar_dataset()
+    predecir_y_guardar_todas_las_predicciones(directorio_test, modelo_guardado, full_gen.class_indices)
