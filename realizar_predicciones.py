@@ -5,7 +5,6 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import tensorflow as tf
 import numpy as np
 import pandas as pd
-import time
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
@@ -13,7 +12,6 @@ import librosa
 import librosa.display
 from PIL import Image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras import Input
@@ -26,7 +24,7 @@ IMG_SIZE = 256
 BATCH_SIZE = 16
 EPOCHS = 50
 IMAGES_DIR = 'images_GTZAN_256/'
-FILENAME_SAVED_MODEL = "modelo_definitivo_entrenado_completo.keras"
+FILENAME_SAVED_MODEL = "modelo_definitivo_entrenado_completo.keras"   # "modelo_cross_val.keras"
 AUDIOS_IA_DIR = 'audios_eval_sist_generativos/'
 IMAGES_IA_DIR = 'images_sist_generativos/'
 
@@ -60,62 +58,6 @@ def cargar_y_preparar_dataset():
 
     return full_gen
 
-def crear_y_compilar_modelo(num_clases, filters=16):
-    model = Sequential([
-        Input(shape=(IMG_SIZE, IMG_SIZE, 3)),
-        Conv2D(filters, (3, 3), activation='relu'),
-        BatchNormalization(),
-        MaxPooling2D((2, 2)),
-
-        Conv2D(filters*2, (3, 3), activation='relu'),
-        BatchNormalization(),
-        MaxPooling2D((2, 2)),
-
-        Conv2D(filters*4, (3, 3), activation='relu'),
-        BatchNormalization(),
-        MaxPooling2D((2, 2)),
-
-        GlobalAveragePooling2D(),
-
-        Dense(128, activation='relu'),
-        Dropout(0.3),
-        Dense(num_clases, activation='softmax') # Capa de salida
-    ])
-    
-    model.compile(
-        optimizer=Adam(learning_rate=0.0005),
-        loss='categorical_crossentropy',
-        metrics=['accuracy', Precision(name='precision'), Recall(name='recall')]
-    )
-
-    return model
-
-# Función para mostrar la evolución de la pérdida y la precisión durante el entrenamiento
-def graficar_resultados(history):
-    acc = history.history['accuracy']
-    loss = history.history['loss']
-    epochs_range = range(len(acc))
-
-    plt.figure(figsize=(12, 5))
-
-    plt.subplot(1, 2, 1)
-    plt.plot(epochs_range, acc, label='Accuracy de entrenamiento')
-    plt.title('Evolución de la Accuracy')
-    plt.xlabel('Épocas')
-    plt.ylabel('Accuracy')
-    plt.legend()
-
-    plt.subplot(1, 2, 2)
-    plt.plot(epochs_range, loss, label='Pérdida de entrenamiento', color='orange')
-    plt.title('Evolución de la Pérdida')
-    plt.xlabel('Épocas')
-    plt.ylabel('Loss')
-    plt.legend()
-
-    plt.tight_layout()
-    plt.savefig('grafica_entrenamiento_modelo_final.png')
-    plt.show()
-
 # Función para mostrar la matriz de confusión
 def mostrar_matriz_confusion(y_true, y_pred, class_indices, matrix_filename, report_filename):
     etiquetas = {v: k for k, v in class_indices.items()}
@@ -141,6 +83,8 @@ def mostrar_matriz_confusion(y_true, y_pred, class_indices, matrix_filename, rep
 
 # Función que carga el modelo guardado
 def cargar_modelo(filename=FILENAME_SAVED_MODEL):
+    print("Directorio actual:", os.getcwd())
+    print("Contenido:", os.listdir())
     return load_model(filename)
 
 # Función que permite predecir el género musical utilizando el modelo
@@ -168,16 +112,15 @@ def predecir_genero(img_path_or_array, model, class_indices):
     return labels[predicted_class], probabilidad, probabilidades
 
 # Función que genera una gráfica con las probabilidades de predicción
-def graficar_probabilidades(probabilidades):
+def graficar_probabilidades(probabilidades, filename):
     plt.figure(figsize=(10, 5))
     plt.bar(probabilidades.keys(), probabilidades.values(), color='mediumslateblue')
     plt.xticks(rotation=45)
     plt.ylabel("Probabilidad")
     plt.title("Probabilidad por Género")
     plt.tight_layout()
-    plt.savefig('probabilidades_prediccion.png')
+    plt.savefig(f'probabilidades_prediccion_{filename}.png')
     plt.show()
-
 
 # Función que genera los espectrogramas de Mel a partir de los audios del dataset
 def generar_espectrogramas_IA(origen_audio_dir, destino_img_dir):
@@ -229,7 +172,7 @@ def generar_espectrogramas_IA(origen_audio_dir, destino_img_dir):
                 except Exception as e:
                     print(f"Error procesando {audio_path}: {e}")
 
-def evaluar_modelo_en_ia(model, test_dir, matrix_filemame, report_filename):
+def evaluar_modelo_en_ia(model, test_dir):
     os.makedirs("resultados_IA", exist_ok=True)
 
     # Preparar generador para los espectrogramas IA
@@ -292,20 +235,10 @@ def evaluar_modelo_en_ia(model, test_dir, matrix_filemame, report_filename):
     print("Predicciones guardadas en 'predicciones_IA.csv'")
 
     # Matriz de confusión y classification report
-    mostrar_matriz_confusion(y_true, y_pred, class_indices_ia, matrix_filemame, report_filename)
-
-    # Predicción de ejemplo (primera imagen generada por IA)
-    ejemplo = ia_gen.filepaths[0]
-    genero, probabilidad, probabilidades = predecir_genero(ejemplo, model, class_indices_ia)
-    print("\nEjemplo de predicción con imagen de IA:")
-    print("Género predicho:", genero)
-    print(f"Confianza: {probabilidad:.2%}")
-
-    # Gráfica de probabilidades
-    graficar_probabilidades(probabilidades)
+    mostrar_matriz_confusion(y_true, y_pred, class_indices_ia)
 
 
-def predecir_y_guardar_todas_las_predicciones(directorio, modelo, class_indices, output_csv="predicciones.csv"):
+def predecir_genero_IA(directorio, modelo, class_indices, predicciones_csv="prediccionesIA.csv"):
     resultados = []
 
     # Invertir class_indices para recuperar nombre de clase desde índice
@@ -316,11 +249,11 @@ def predecir_y_guardar_todas_las_predicciones(directorio, modelo, class_indices,
         if not os.path.isdir(clase_path):
             continue
 
-        for fname in sorted(os.listdir(clase_path)):
-            if not fname.lower().endswith(('.png', '.jpg', '.jpeg')):
+        for filename in sorted(os.listdir(clase_path)):
+            if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
                 continue
 
-            ruta_img = os.path.join(clase_path, fname)
+            ruta_img = os.path.join(clase_path, filename)
 
             # Cargar y preprocesar la imagen
             img = load_img(ruta_img, target_size=(IMG_SIZE, IMG_SIZE))
@@ -328,111 +261,36 @@ def predecir_y_guardar_todas_las_predicciones(directorio, modelo, class_indices,
             img_array = np.expand_dims(img_array, axis=0)
 
             # Realizar la predicción
-            pred = modelo.predict(img_array, verbose=0)[0]
-            idx_predicho = np.argmax(pred)
-            confianza = float(np.max(pred))
+            prediction = modelo.predict(img_array, verbose=0)[0]
+            idx_predicho = np.argmax(prediction)
+            confianza = float(np.max(prediction))
             genero_predicho = etiquetas.get(idx_predicho, f"Clase_{idx_predicho}")
 
             resultados.append({
-                "archivo": fname,
+                "archivo": filename,
                 "clase_real": clase,
                 "clase_predicha": genero_predicho,
                 "probabilidad": round(confianza, 4)
             })
 
+            labels = {v: k for k, v in class_indices.items()}
+    
+            # Obtener la probabilidad de cada uno de los 10 géneros
+            probabilidades = {labels[i]: float(prediction[i]) for i in range(len(prediction))}
+            graficar_probabilidades(probabilidades, filename)
+
     # Guardar resultados en CSV
     df_resultados = pd.DataFrame(resultados)
-    df_resultados.to_csv(output_csv, index=False)
-    print(f"✅ Predicciones guardadas en: {output_csv}")
+    df_resultados.to_csv(predicciones_csv, index=False)
+    print(f"✅ Predicciones guardadas en: {predicciones_csv}")
 
 if __name__ == "__main__":
-    print("\n========================================")
-    print("ENTRENAMIENTO FINAL CON TODO EL DATASET")
-    print("========================================")
-
-    # Cargar el dataset GTZAN
-    full_gen = cargar_y_preparar_dataset()
-    
-    # Crear y compilar el modelo final
-    model = crear_y_compilar_modelo(num_clases=len(full_gen.class_indices), filters=16)
-
-    # Mostrar un resumen de la estructura del modelo final
-    model.summary()
-    print()
-
-    # Incluir callbacks
-    checkpoint_path = f"checkpoint_modelo_definitivo.keras"
-    callbacks = [
-        EarlyStopping(monitor='accuracy', patience=10, restore_best_weights=True),
-        ModelCheckpoint(filepath=checkpoint_path, monitor='accuracy', save_best_only=True, verbose=0)
-    ]
-
-    # Entrenar el modelo
-    start_time = time.time()
-    history = model.fit(
-        full_gen,
-        epochs=EPOCHS,
-        callbacks=callbacks
-    )
-    training_time = time.time() - start_time
-    print(f"\nTiempo de entrenamiento en el dataset completo: {training_time:.2f} segundos")
-
-    model.save(FILENAME_SAVED_MODEL)
-    print(f"Modelo final guardado como {FILENAME_SAVED_MODEL}")
-
-    # Evaluación final
-    results = model.evaluate(full_gen, verbose=0)
-    loss, acc, precision, recall = results
-    print(f"\nEvaluación final sobre todo el dataset:")
-    print(f"Loss: {loss:.4f}")
-    print(f"Accuracy: {acc:.4f}")
-    print(f"Precision: {precision:.4f}")
-    print(f"Recall: {recall:.4f}")
-
-    y_true = full_gen.classes
-    y_pred_probs = model.predict(full_gen)
-    y_pred = np.argmax(y_pred_probs, axis=1)
-
-    f1 = f1_score(y_true, y_pred, average='macro')
-    print(f"F1-score: {f1:.4f}")
-
-    with open("resultados_finales.txt", "w") as f:
-        f.write(f"Loss: {loss:.4f}\n")
-        f.write(f"Accuracy: {acc:.4f}\n")
-        f.write(f"Precision: {precision:.4f}\n")
-        f.write(f"Recall: {recall:.4f}\n")
-        f.write(f"F1-score: {f1:.4f}\n")
-   
-    # Gráfica de entrenamiento
-    graficar_resultados(history)
-
-    # Mostrar la matriz de confusión
-    mostrar_matriz_confusion(y_true, y_pred, full_gen.class_indices, matrix_filename="matriz_confusion_modelo_final", report_filename="classification_report_modelo_final")
-    
     # Generar los espectrogramas a partir de los audios de IA
     #generar_espectrogramas_IA(origen_audio_dir=AUDIOS_IA_DIR, destino_img_dir=IMAGES_IA_DIR)
 
-    # Evaluación con los espectrogramas generados a partir de los audios de IA
-    """
-    test_dir = IMAGES_IA_DIR
-    matrix_filename="matriz_confusion_IA"
-    report_filename="classification_report_IA"
-    model = cargar_modelo(filename=FILENAME_SAVED_MODEL)
-    evaluar_modelo_en_ia(model, test_dir, matrix_filename, report_filename)
-    """
-    """
-    # Ejemplo de predicción
-    modelo_guardado = cargar_modelo(FILENAME_SAVED_MODEL)
-    ejemplo = 'images_GTZAN/pop/pop.00047.png'
-    genero, probabilidad, probabilidades = predecir_genero(ejemplo, modelo_guardado, full_gen.class_indices)
-    print("Género predicho:", genero)
-    print(f"Confianza: {probabilidad:.2%}")
-
-    # Mostrar una gráfica de barras con la probabilidad de cada uno de los 10 géneros
-    graficar_probabilidades(probabilidades)
-    """
-    
     directorio_test = IMAGES_IA_DIR
     modelo_guardado = cargar_modelo(FILENAME_SAVED_MODEL)
     full_gen = cargar_y_preparar_dataset()
-    predecir_y_guardar_todas_las_predicciones(directorio_test, modelo_guardado, full_gen.class_indices)
+    predecir_genero_IA(directorio_test, modelo_guardado, full_gen.class_indices)
+
+    #evaluar_modelo_en_ia(modelo_guardado, directorio_test)
