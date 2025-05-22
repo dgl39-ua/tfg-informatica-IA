@@ -201,43 +201,6 @@ def crear_y_compilar_modelo_1_preliminar(num_clases):
 
     return model
 
-def crear_y_compilar_modelo_arq2(num_clases):
-    model = Sequential([
-        Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
-
-        # Bloque 1
-        Conv2D(16, (3, 3), activation='relu', padding='same'),
-        BatchNormalization(),
-        MaxPooling2D((2, 2)),
-        Dropout(0.2),
-
-        # Bloque 2
-        Conv2D(32, (3, 3), activation='relu', padding='same'),
-        BatchNormalization(),
-        MaxPooling2D((2, 2)),
-        Dropout(0.3),
-
-        # Bloque 3
-        Conv2D(64, (3, 3), activation='relu', padding='same'),
-        BatchNormalization(),
-        MaxPooling2D((2, 2)),
-        Dropout(0.4),
-
-        # Cierre
-        tf.keras.layers.GlobalAveragePooling2D(),
-        Dense(64, activation='relu'),
-        Dropout(0.5),
-        Dense(num_clases, activation='softmax')
-    ])
-
-    model.compile(
-        optimizer=Adam(learning_rate=0.0005),
-        loss='categorical_crossentropy',
-        metrics=['accuracy']
-    )
-
-    return model
-
 def crear_y_compilar_modelo(num_clases):
     model = Sequential([
         Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)),

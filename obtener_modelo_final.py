@@ -204,7 +204,7 @@ if __name__ == "__main__":
         target_size=(IMG_SIZE, IMG_SIZE),
         batch_size=BATCH_SIZE,
         class_mode="categorical",
-        shuffle=True
+        shuffle=False
     )
     
     # Crear y compilar el modelo final
