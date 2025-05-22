@@ -24,7 +24,7 @@ IMG_SIZE = 256
 BATCH_SIZE = 16
 EPOCHS = 50
 IMAGES_DIR = 'images_GTZAN_256/'
-FILENAME_SAVED_MODEL = "modelo_definitivo_entrenado_completo.keras"   # "modelo_cross_val.keras"
+FILENAME_SAVED_MODEL = "modelo_definitivo_entrenado_completo.h5"   # "modelo_cross_val.keras"    "mejor_modelo_ajustado.h5"
 AUDIOS_IA_DIR = 'audios_eval_sist_generativos/'
 IMAGES_IA_DIR = 'images_sist_generativos/'
 
@@ -83,8 +83,6 @@ def mostrar_matriz_confusion(y_true, y_pred, class_indices, matrix_filename, rep
 
 # Función que carga el modelo guardado
 def cargar_modelo(filename=FILENAME_SAVED_MODEL):
-    print("Directorio actual:", os.getcwd())
-    print("Contenido:", os.listdir())
     return load_model(filename)
 
 # Función que permite predecir el género musical utilizando el modelo

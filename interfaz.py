@@ -4,57 +4,27 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 import streamlit as st
 import numpy as np
-from PIL import Image
 from io import BytesIO
-import pandas as pd
 import tempfile
 import librosa
 import librosa.display
 from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
 import matplotlib.pyplot as plt
+from PIL import Image, UnidentifiedImageError
+from librosa.util.exceptions import ParameterError
+import audioread
+from audioread.exceptions import NoBackendError
+from tensorflow.errors import ResourceExhaustedError
 
 IMG_SIZE = 256
 BATCH_SIZE = 16
 IMAGES_DIR = 'images_GTZAN_256/'
-FILENAME_SAVED_MODEL = 'modelo_definitivo_entrenado_completo.keras'
+FILENAME_SAVED_MODEL = 'modelo_cross_val.keras'     # 'modelo_reentrenado.keras'
 AUDIOS_IA_DIR = 'audios_eval_sist_generativos/'
 IMAGES_IA_DIR = 'images_sist_generativos/'
 
-# Función que carga el modelo guardado
-def cargar_modelo(filename=FILENAME_SAVED_MODEL):
-    return load_model(filename)
-
-# Función que carga el dataset
-def cargar_y_preparar_dataset():
-    filepaths = []
-    labels = []
-
-    for class_dir in os.listdir(IMAGES_DIR):
-        class_path = os.path.join(IMAGES_DIR, class_dir)
-        if os.path.isdir(class_path):
-            for fname in os.listdir(class_path):
-                if fname.lower().endswith(('.png', '.jpg', '.jpeg')):
-                    filepaths.append(os.path.join(class_path, fname))
-                    labels.append(class_dir)
-
-    df = pd.DataFrame({"filename": filepaths, "class": labels})
-
-    datagen = ImageDataGenerator(rescale=1./255)
-
-    # Dataset completo
-    full_gen = datagen.flow_from_dataframe(
-        df,
-        x_col="filename",
-        y_col="class",
-        target_size=(IMG_SIZE, IMG_SIZE),
-        batch_size=BATCH_SIZE,
-        class_mode="categorical",
-        shuffle=False
-    )
-
-    return full_gen
-
+# Función que convierte el audio en espectrograma
 def audio_a_espectrograma(wav_file):
     # Guardar temporalmente el archivo subido
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmpfile:
@@ -127,8 +97,6 @@ def graficar_probabilidades(probabilidades):
     plt.ylabel("Probabilidad")
     plt.title("Probabilidad por Género")
     plt.tight_layout()
-    plt.savefig('probabilidades_prediccion.png')
-    plt.show()
 
 # -------------------------------
 # Interfaz
@@ -139,10 +107,17 @@ st.title("🎵 Clasificador de Géneros Musicales")
 st.markdown("---")
 
 with st.spinner("Cargando modelo..."):
-    modelo = cargar_modelo(FILENAME_SAVED_MODEL)
-    #full_gen, _ = cargar_y_preparar_dataset()
-    full_gen = cargar_y_preparar_dataset()
-    class_indices = full_gen.class_indices # Se cargan las clases
+    if not os.path.isfile(FILENAME_SAVED_MODEL):
+        st.error(f"🚫 No se ha encontrado el modelo: `{FILENAME_SAVED_MODEL}`")
+        st.stop()
+    
+    try:
+        modelo = load_model(FILENAME_SAVED_MODEL)
+    except Exception as e:
+        st.error(f"🚫 Ha ocurrido un error al cargar el modelo:\n{e}")
+        st.stop()
+
+    class_indices = {'blues': 0, 'classical': 1, 'country': 2, 'disco': 3, 'hiphop': 4, 'jazz': 5, 'metal': 6, 'pop': 7, 'reggae': 8, 'rock': 9}    # Se cargan las clases
     etiquetas = {v: k for k, v in class_indices.items()}
 st.success("Modelo cargado correctamente ✅")
 
@@ -155,28 +130,54 @@ archivo = st.file_uploader("Sube tu archivo:", type=["wav", "png", "jpg", "jpeg"
 # Procesar el archivo
 if archivo is not None:
     if tipo == "🎧 Audio (.wav)":
-        st.audio(archivo, format='audio/wav')
-        with st.spinner("Generando espectrograma..."):
-            espectrograma_img = audio_a_espectrograma(archivo)
+        try:
+            st.audio(archivo, format='audio/wav')
+            with st.spinner("Generando espectrograma..."):
+                espectrograma_img = audio_a_espectrograma(archivo)
+        except NoBackendError:
+            st.error("🚫 No se ha podido procesar el archivo como audio. Por favor, asegúrate de seleccionar un audio en formato .wav.")
+            st.stop()
+        except ParameterError as e:
+            st.error("🚫 El audio está corrupto o no es un WAV válido.")
+            st.stop()
+        except Exception as e:
+            st.error(f"🚫 Error inesperado al procesar audio: {e}")
+            st.stop()
+
+        # Mostrar espectrograma
         cols = st.columns([1, 2, 1])
         with cols[1]:
             st.image(espectrograma_img, caption="Espectrograma generado", width=400)
     else:
-        espectrograma_img = Image.open(archivo).convert("RGB")
-        espectrograma_img = espectrograma_img.resize((IMG_SIZE, IMG_SIZE))
+        try:
+            espectrograma_img = Image.open(archivo).convert("RGB")
+            espectrograma_img = espectrograma_img.resize((IMG_SIZE, IMG_SIZE))
+        except UnidentifiedImageError:
+            st.error("🚫 El archivo que has subido no es una imagen válida. Por favor, asegúrate de seleccionar una imagen en formato .png o .jpg.")
+            st.stop()
+        
+        # Mostrar espectrograma
         cols = st.columns([1, 2, 1])
         with cols[1]:
             st.image(espectrograma_img, caption="Espectrograma cargado", width=400)
 
     # Clasificar el género
     if st.button("🎼 Clasificar género"):
-        genero, probabilidad, probabilidades = predecir_genero(espectrograma_img, modelo, full_gen.class_indices)
+        try:
+            with st.spinner("Clasificando género..."):
+                genero, probabilidad, probabilidades = predecir_genero(espectrograma_img, modelo, class_indices)
+        except (ValueError, ResourceExhaustedError) as e:
+            st.error(f"🚫 Error al hacer la predicción: {e}")
+            st.stop()
 
         st.markdown(f"🎤 **Género predicho:** `{genero}`")
         st.markdown(f"📊 **Confianza:** `{probabilidad:.2%}`")
 
-        graficar_probabilidades(probabilidades)
-        st.pyplot(plt)
+        try:
+            graficar_probabilidades(probabilidades)
+            st.pyplot(plt)
+        except Exception as e:
+            st.error(f"🚫 No se pudo dibujar la gráfica de probabilidades: {e}")
 
 st.markdown("---")
 st.caption("CNN y GTZAN - Diego García López - TFG INFORMÁTICA")
