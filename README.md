@@ -8,7 +8,7 @@ Diego García López - Doble Grado en Ingeniería Informática y ADE - Curso 202
 
 ## 📂 Estructura del Proyecto
 
-. ├── audios_GTZAN/&nbsp;&nbsp;&nbsp;*# Carpeta que contiene los audios de GTZAN organizados por género*  
+. ├── audios_GTZAN/&nbsp; &nbsp; &nbsp;*# Carpeta que contiene los audios de GTZAN organizados por género*  
 ├── images_sist_generativos/   *# Carpeta con los audios generados por los sistemas de IA probados*  
 ├── images_GTZAN_128/          *# Carpeta que contiene los espectrogramas 128x128 organizados por género*  
 ├── images_GTZAN_256/          *# Carpeta que contiene los espectrogramas 256x256 organizados por género*  
