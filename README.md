@@ -22,16 +22,16 @@ Diego García López - Doble Grado en Ingeniería Informática y ADE - Curso 202
 │ ├── pop/  
 │ ├── reggae/  
 │ ├── rock/  
-├── images_sist_generativos/   *# Carpeta con los espectrogramas generados a partir de los audios de IA*  
-├── prueba_hiperparametros/    *# Carpeta con el fichero y los resultados del ajuste de hiperparámetros*  
-├── reentrenamiento_modelo/    *# Carpeta con los ficheros del reentrenamiento con el dataset completo*  
-├── resultados_modelos/        *# Carpeta con los resultados y predicciones de los modelos finales*  
-├── sin_cross_val/             *# Carpeta con los resultados iniciales sin usar validación cruzada*  
-├── modelo_cross_val.keras     *# Mejor modelo de la validación cruzada*  
-├── modelo_reentrenado.keras   *# Mejor modelo del reentrenamiento con todo el dataset*  
-├── interfaz.py                *# Aplicación web en Streamlit*  
-├── README.md                  *# Descripción del proyecto*  
-├── realizar_predicciones.py   *# Descripción del proyecto*  
+├── images_sist_generativos/ &nbsp; &nbsp; &nbsp; *# Carpeta con los espectrogramas generados a partir de los audios de IA*  
+├── prueba_hiperparametros/ &nbsp; &nbsp; &nbsp; *# Carpeta con el fichero y los resultados del ajuste de hiperparámetros*  
+├── reentrenamiento_modelo/ &nbsp; &nbsp; &nbsp; *# Carpeta con los ficheros del reentrenamiento con el dataset completo*  
+├── resultados_modelos/ &nbsp; &nbsp; &nbsp; *# Carpeta con los resultados y predicciones de los modelos finales*  
+├── sin_cross_val/ &nbsp; &nbsp; &nbsp; *# Carpeta con los resultados iniciales sin usar validación cruzada*  
+├── modelo_cross_val.keras &nbsp; &nbsp; &nbsp; *# Mejor modelo de la validación cruzada*  
+├── modelo_reentrenado.keras &nbsp; &nbsp; &nbsp; *# Mejor modelo del reentrenamiento con todo el dataset*  
+├── interfaz.py &nbsp; &nbsp; &nbsp; *# Aplicación web en Streamlit*  
+├── README.md &nbsp; &nbsp; &nbsp; *# Descripción del proyecto*  
+├── realizar_predicciones.py &nbsp; &nbsp; &nbsp; *# Descripción del proyecto*  
 
 ## 📚 Requisitos
 
