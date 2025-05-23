@@ -1,5 +1,0 @@
-Loss: 3.3194
-Accuracy: 0.2232
-Precision: 0.4692
-Recall: 0.1221
-F1-score: 0.1156
