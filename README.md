@@ -31,7 +31,7 @@ Diego García López - Doble Grado en Ingeniería Informática y ADE - Curso 202
 ├── modelo_reentrenado.keras &nbsp; &nbsp; &nbsp; *# Mejor modelo del reentrenamiento con todo el dataset*  
 ├── interfaz.py &nbsp; &nbsp; &nbsp; *# Aplicación web en Streamlit*  
 ├── README.md &nbsp; &nbsp; &nbsp; *# Descripción del proyecto*  
-├── realizar_predicciones.py &nbsp; &nbsp; &nbsp; *# Descripción del proyecto*  
+├── realizar_predicciones.py &nbsp; &nbsp; &nbsp; *# Fichero que permite realizar predicciones*  
 
 ## 📚 Requisitos
 
