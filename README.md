@@ -2,13 +2,17 @@
 
 Este proyecto entrena una **red neuronal convolucional (CNN)** para clasificar espectrogramas generados a partir del dataset **GTZAN**, un conjunto popular de datos de audio que contiene 100 ejemplos de 10 géneros musicales distintos.
 
-Forma parte del Trabajo de Fin de Grado en Ingeniería Informática, en el que se exploran técnicas de inteligencia artificial aplicadas a la música, en este caso para la clasificación automática de géneros musicales.
+Forma parte del Trabajo de Fin de Grado en Ingeniería Informática, en el que se exploran técnicas de inteligencia artificial aplicadas a la música, en este caso para la generación automática de música y clasificación de géneros musicales.
 
-Diego García López - Doble Grado en Ingeniería Informática y ADE - Curso 2024/2025
+Diego García López - Doble Grado en Ingeniería Informática y ADE - Curso 2024/2025 - Universidad de Alicante
 
 ## 📂 Estructura del Proyecto
 
-. ├── images_GTZAN/            *# Carpeta que contiene los espectrogramas organizados por género*  
+```text
+. ├── audios_GTZAN/            *# Carpeta que contiene los audios de GTZAN organizados por género*  
+├── images_sist_generativos/   *# Carpeta con los audios generados por los sistemas de IA probados* 
+├── images_GTZAN_128/          *# Carpeta que contiene los espectrogramas 128x128 organizados por género* 
+├── images_GTZAN_256/          *# Carpeta que contiene los espectrogramas 256x256 organizados por género*  
 │ ├── blues/  
 │ ├── classical/  
 │ ├── country/  
@@ -19,11 +23,17 @@ Diego García López - Doble Grado en Ingeniería Informática y ADE - Curso 202
 │ ├── pop/  
 │ ├── reggae/  
 │ ├── rock/  
-├── modelo_gtzan_cnn.h5         *# Mejor modelo guardado (se genera después de entrenar)*  
-├── grafica_CNN.png             *# Gráfica de evolución de precisión en validación (se genera)*  
-├── cnn_gtzan.py                *# Script principal del proyecto*  
-├── interfaz.py                 *# Aplicación en Streamlit*  
-├── README.md                   *# Descripción del proyecto*  
+├── images_sist_generativos/   *# Carpeta con los espectrogramas generados a partir de los audios de IA*  
+├── prueba_hiperparametros/    *# Carpeta con el fichero y los resultados del ajuste de hiperparámetros*  
+├── reentrenamiento_modelo/    *# Carpeta con los ficheros del reentrenamiento con el dataset completo*  
+├── resultados_modelos/        *# Carpeta con los resultados y predicciones de los modelos finales*  
+├── sin_cross_val/             *# Carpeta con los resultados iniciales sin usar validación cruzada*  
+├── modelo_cross_val.keras     *# Mejor modelo de la validación cruzada*  
+├── modelo_reentrenado.keras   *# Mejor modelo del reentrenamiento con todo el dataset*  
+├── interfaz.py                *# Aplicación web en Streamlit*  
+├── README.md                  *# Descripción del proyecto*  
+├── realizar_predicciones.py   *# Descripción del proyecto*  
+```
 
 ## 📚 Requisitos
 
@@ -35,10 +45,13 @@ Diego García López - Doble Grado en Ingeniería Informática y ADE - Curso 202
 - Seaborn
 - PIL (Pillow)
 - pandas
+- librosa
+- audioread
+- streamlit
 
 Se pueden instalar los requisitos con:
 ```bash
-pip install tensorflow numpy scikit-learn matplotlib seaborn pillow pandas
+pip install tensorflow numpy scikit-learn matplotlib seaborn pillow pandas librosa audioread streamlit
 ```
 
 ## 🧪 Entrenamiento y guardado de un modelo
@@ -47,8 +60,15 @@ Para entrenar y probar varias configuraciones de la red neuronal, además de gua
 source ~/tensorflow/bin/activate
 ```
 ```bash
-python3 cnn_gtzan.py
+python3 cnn_gtzan_cross_val.py
 ```
+
+Para realizar predicciones sobre los espectrogramas generados a partir de las piezas compuestas por los sistemas generativos evaluados:
+```bash
+python3 realizar_predicciones.py
+```
+
+Para realizar predicciones sobre el género de cualquier audio o imagen se puede acudir a la interfaz (ver el siguiente apartado).
 
 ## 🌐 Aplicación web básica con Streamlit
 
